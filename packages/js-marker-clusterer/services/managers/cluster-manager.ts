@@ -6,7 +6,7 @@ import {MarkerManager} from '../../../core/services/managers/marker-manager';
 import {GoogleMapsAPIWrapper} from '../../../core/services/google-maps-api-wrapper';
 import {AgmMarker} from '../../../core/directives/marker';
 import {AgmMarkerCluster} from './../../directives/marker-cluster';
-import {Marker} from '@agm/core/services/google-maps-types';
+import {Marker, GoogleMap, google} from '@agm/core/services/google-maps-types';
 import {MarkerClustererInstance, ClusterOptions} from '../google-clusterer-types';
 
 declare var MarkerClusterer: any;
@@ -15,6 +15,8 @@ declare var MarkerClusterer: any;
 export class ClusterManager extends MarkerManager {
   private _clustererInstance: Promise<MarkerClustererInstance>;
   private _resolver: Function;
+  private _clusterer: any;
+  private _map: GoogleMap;
 
   constructor(protected _mapsWrapper: GoogleMapsAPIWrapper, protected _zone: NgZone) {
     super(_mapsWrapper, _zone);
@@ -25,8 +27,9 @@ export class ClusterManager extends MarkerManager {
 
   init(options: ClusterOptions): void {
     this._mapsWrapper.getNativeMap().then(map => {
-      const clusterer = new MarkerClusterer(map, [], options);
-      this._resolver(clusterer);
+      this._map = map;
+      this._clusterer = new MarkerClusterer(this._map, [], options);
+      this._resolver(this._clusterer);
     });
   }
 
@@ -100,6 +103,14 @@ export class ClusterManager extends MarkerManager {
     this._clustererInstance.then(cluster => {
       if (c.zoomOnClick !== undefined) {
         cluster.zoomOnClick_ = c.zoomOnClick;
+      }
+    });
+  }
+
+  setClick(c: AgmMarkerCluster, handler: Function): void {
+    this._clustererInstance.then(cluster => {
+      if (!c.zoomOnClick) {
+        google.maps.event.addListener(cluster, 'clusterclick', handler);
       }
     });
   }
